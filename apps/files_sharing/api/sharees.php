@@ -121,6 +121,11 @@ class Sharees {
 				continue;
 			}
 
+			if ($this->filterAutocompletion($search, $uid, $displayName)) {
+				// Do not allow autocompletion if disabled
+				continue;
+			}
+
 			$sharees[] = [
 				'label' => $displayName,
 				'value' => [
@@ -152,6 +157,11 @@ class Sharees {
 		}
 
 		foreach ($groups as $gid) {
+			if ($this->filterAutocompletion($search, $gid, $gid)) {
+				// Do not allow autocompletion if disabled
+				continue;
+			}
+
 			$sharees[] = [
 				'label' => $gid,
 				'value' => [
@@ -187,6 +197,11 @@ class Sharees {
 		foreach ($addressBookContacts as $contact) {
 			if (isset($contact['CLOUD'])) {
 				foreach ($contact['CLOUD'] as $cloudId) {
+					if ($this->filterAutocompletion($search, $cloudId, $contact['FN'])) {
+						// Do not allow autocompletion if disabled
+						continue;
+					}
+
 					$sharees[] = [
 						'label' => $contact['FN'] . ' (' . $cloudId . ')',
 						'value' => [
@@ -199,6 +214,20 @@ class Sharees {
 		}
 
 		return $sharees;
+	}
+
+	/**
+	 * @param string $search
+	 * @param string $sharee
+	 * @param string $label
+	 * @return bool True if the entry is an autocomplete hint, false otherwise
+	 */
+	protected function filterAutocompletion($search, $sharee, $label) {
+		if ($this->config->getSystemValue('webui-sharing-autocompletion.enabled', true)) {
+			return false;
+		}
+
+		return $search !== $sharee && $search !== $label;
 	}
 
 	/**

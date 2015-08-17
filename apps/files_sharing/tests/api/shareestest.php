@@ -42,6 +42,9 @@ class ShareesTest extends TestCase {
 	/** @var \OCP\IUserSession|\PHPUnit_Framework_MockObject_MockObject */
 	protected $session;
 
+	/** @var \OCP\IConfig|\PHPUnit_Framework_MockObject_MockObject */
+	protected $config;
+
 	protected function setUp() {
 		parent::setUp();
 
@@ -61,11 +64,15 @@ class ShareesTest extends TestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
+		$this->config = $this->getMockBuilder('OCP\IConfig')
+			->disableOriginalConstructor()
+			->getMock();
+
 		$this->sharees = new Sharees(
 			$this->groupManager,
 			$this->userManager,
 			$this->contactsManager,
-			$this->getMockBuilder('OCP\IConfig')->disableOriginalConstructor()->getMock(),
+			$this->config,
 			$this->session,
 			$this->getMockBuilder('OCP\IURLGenerator')->disableOriginalConstructor()->getMock(),
 			$this->getMockBuilder('OCP\ILogger')->disableOriginalConstructor()->getMock(),
@@ -103,10 +110,33 @@ class ShareesTest extends TestCase {
 
 	public function dataGetUsers() {
 		return [
-			['test', false, [], [], []],
-			['test', true, [], [], []],
+			['test', false, true, [], [], []],
+			['test', true, true, [], [], []],
 			[
 				'test',
+				false,
+				true,
+				[],
+				[
+					$this->getUserMock('test1', 'Test One'),
+				],
+				[
+					['label' => 'Test One', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_USER, 'shareWith' => 'test1']],
+				]
+			],
+			[
+				'test',
+				false,
+				false,
+				[],
+				[
+					$this->getUserMock('test1', 'Test One'),
+				],
+				[]
+			],
+			[
+				'test1',
+				false,
 				false,
 				[],
 				[
@@ -119,6 +149,7 @@ class ShareesTest extends TestCase {
 			[
 				'test',
 				false,
+				true,
 				[],
 				[
 					$this->getUserMock('test1', 'Test One'),
@@ -132,6 +163,7 @@ class ShareesTest extends TestCase {
 			[
 				'test',
 				false,
+				true,
 				[],
 				[
 					$this->getUserMock('test1', 'Test One'),
@@ -146,6 +178,7 @@ class ShareesTest extends TestCase {
 			[
 				'test',
 				true,
+				true,
 				['abc', 'xyz'],
 				[
 					['abc', 'test', -1, 0, ['test1' => 'Test One']],
@@ -158,6 +191,7 @@ class ShareesTest extends TestCase {
 			[
 				'test',
 				true,
+				true,
 				['abc', 'xyz'],
 				[
 					['abc', 'test', -1, 0, [
@@ -177,6 +211,7 @@ class ShareesTest extends TestCase {
 			[
 				'test',
 				true,
+				true,
 				['abc', 'xyz'],
 				[
 					['abc', 'test', -1, 0, [
@@ -193,6 +228,7 @@ class ShareesTest extends TestCase {
 			],
 			[
 				'test',
+				true,
 				true,
 				['abc', 'xyz'],
 				[
@@ -219,15 +255,20 @@ class ShareesTest extends TestCase {
 	 *
 	 * @param string $searchTerm
 	 * @param bool $shareWithGroupOnly
+	 * @param bool $autocomplete
 	 * @param array $groupResponse
 	 * @param array $userResponse
 	 * @param array $expected
 	 */
-	public function testGetUsers($searchTerm, $shareWithGroupOnly, $groupResponse, $userResponse, $expected) {
+	public function testGetUsers($searchTerm, $shareWithGroupOnly, $autocomplete, $groupResponse, $userResponse, $expected) {
 		$user = $this->getUserMock('admin', 'Administrator');
 		$this->session->expects($this->any())
 			->method('getUser')
 			->willReturn($user);
+		$this->config->expects($this->any())
+			->method('getSystemValue')
+			->with('webui-sharing-autocompletion.enabled', true)
+			->willReturn($autocomplete);
 
 		if (!$shareWithGroupOnly) {
 			$this->userManager->expects($this->once())
@@ -253,16 +294,34 @@ class ShareesTest extends TestCase {
 
 	public function dataGetGroups() {
 		return [
-			['test', false, [], [], []],
+			['test', false, true, [], [], []],
 			[
-				'test', false,
+				'test', false, true,
 				[$this->getGroupMock('test1')],
 				[],
 				[['label' => 'test1', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_GROUP, 'shareWith' => 'test1']]],
 			],
-			['test', true, [], [], []],
 			[
-				'test', true,
+				'test', false, false,
+				[
+					$this->getGroupMock('test1'),
+					$this->getGroupMock('test2'),
+				],
+				[],
+				[],
+			],
+			[
+				'test1', false, false,
+				[
+					$this->getGroupMock('test1'),
+					$this->getGroupMock('test2'),
+				],
+				[],
+				[['label' => 'test1', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_GROUP, 'shareWith' => 'test1']]],
+			],
+			['test', true, true, [], [], []],
+			[
+				'test', true, true,
 				[
 					$this->getGroupMock('test1'),
 					$this->getGroupMock('test2'),
@@ -278,15 +337,20 @@ class ShareesTest extends TestCase {
 	 *
 	 * @param string $searchTerm
 	 * @param bool $shareWithGroupOnly
+	 * @param bool $autocomplete
 	 * @param array $groupResponse
 	 * @param array $userGroupsResponse
 	 * @param array $expected
 	 */
-	public function testGetGroups($searchTerm, $shareWithGroupOnly, $groupResponse, $userGroupsResponse, $expected) {
+	public function testGetGroups($searchTerm, $shareWithGroupOnly, $autocomplete, $groupResponse, $userGroupsResponse, $expected) {
 		$this->groupManager->expects($this->once())
 			->method('search')
 			->with($searchTerm)
 			->willReturn($groupResponse);
+		$this->config->expects($this->any())
+			->method('getSystemValue')
+			->with('webui-sharing-autocompletion.enabled', true)
+			->willReturn($autocomplete);
 
 		if ($shareWithGroupOnly) {
 			$user = $this->getUserMock('admin', 'Administrator');
@@ -308,16 +372,25 @@ class ShareesTest extends TestCase {
 
 	public function dataGetRemote() {
 		return [
-			['test', [], []],
+			['test', [], true, []],
 			[
 				'test@remote',
 				[],
+				true,
 				[
 					['label' => 'test@remote', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'test@remote']],
 				],
 			],
 			[
-				'test',
+				'test@remote',
+				[],
+				false,
+				[
+					['label' => 'test@remote', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'test@remote']],
+				],
+			],
+			[
+				'username@localho',
 				[
 					[
 						'FN' => 'User3 @ Localhost',
@@ -333,8 +406,135 @@ class ShareesTest extends TestCase {
 							'username@localhost',
 						],
 					],
+					[
+						'FN' => 'User @ Local Horst',
+						'CLOUD' => [
+							'username@localhorst',
+						],
+					],
 				],
+				true,
 				[
+					['label' => 'username@localho', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localho']],
+					['label' => 'User @ Localhost (username@localhost)', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhost']],
+					['label' => 'User @ Local Horst (username@localhorst)', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhorst']],
+				],
+			],
+			[
+				'username@localho',
+				[
+					[
+						'FN' => 'User3 @ Localhost',
+					],
+					[
+						'FN' => 'User2 @ Localhost',
+						'CLOUD' => [
+						],
+					],
+					[
+						'FN' => 'User @ Localhost',
+						'CLOUD' => [
+							'username@localhost',
+						],
+					],
+					[
+						'FN' => 'User @ Local Horst',
+						'CLOUD' => [
+							'username@localhorst',
+						],
+					],
+				],
+				false,
+				[
+					['label' => 'username@localho', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localho']],
+				],
+			],
+			[
+				'username@localhost',
+				[
+					[
+						'FN' => 'User3 @ Localhost',
+					],
+					[
+						'FN' => 'User2 @ Localhost',
+						'CLOUD' => [
+						],
+					],
+					[
+						'FN' => 'User @ Localhost',
+						'CLOUD' => [
+							'username@localhost',
+						],
+					],
+					[
+						'FN' => 'User @ Local Horst',
+						'CLOUD' => [
+							'username@localhorst',
+						],
+					],
+				],
+				false,
+				[
+					['label' => 'username@localhost', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhost']],
+					['label' => 'User @ Localhost (username@localhost)', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhost']],
+				],
+			],
+			[
+				'User @ Local',
+				[
+					[
+						'FN' => 'User3 @ Localhost',
+					],
+					[
+						'FN' => 'User2 @ Localhost',
+						'CLOUD' => [
+						],
+					],
+					[
+						'FN' => 'User @ Localhost',
+						'CLOUD' => [
+							'username@localhost',
+						],
+					],
+					[
+						'FN' => 'User @ Local Horst',
+						'CLOUD' => [
+							'username@localhorst',
+						],
+					],
+				],
+				false,
+				[
+					['label' => 'User @ Local', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'User @ Local']],
+				],
+			],
+			[
+				'User @ Localhost',
+				[
+					[
+						'FN' => 'User3 @ Localhost',
+					],
+					[
+						'FN' => 'User2 @ Localhost',
+						'CLOUD' => [
+						],
+					],
+					[
+						'FN' => 'User @ Localhost',
+						'CLOUD' => [
+							'username@localhost',
+						],
+					],
+					[
+						'FN' => 'User @ Local Horst',
+						'CLOUD' => [
+							'username@localhorst',
+						],
+					],
+				],
+				false,
+				[
+					['label' => 'User @ Localhost', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'User @ Localhost']],
 					['label' => 'User @ Localhost (username@localhost)', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhost']],
 				],
 			],
@@ -356,6 +556,7 @@ class ShareesTest extends TestCase {
 						],
 					],
 				],
+				true,
 				[
 					['label' => 'test@remote', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'test@remote']],
 					['label' => 'User @ Localhost (username@localhost)', 'value' => ['shareType' => \OCP\Share::SHARE_TYPE_REMOTE, 'shareWith' => 'username@localhost']],
@@ -369,13 +570,18 @@ class ShareesTest extends TestCase {
 	 *
 	 * @param string $searchTerm
 	 * @param array $contacts
+	 * @param bool $autocomplete
 	 * @param array $expected
 	 */
-	public function testGetRemote($searchTerm, $contacts, $expected) {
+	public function testGetRemote($searchTerm, $contacts, $autocomplete, $expected) {
 		$this->contactsManager->expects($this->any())
 			->method('search')
 			->with($searchTerm, ['CLOUD', 'FN'])
 			->willReturn($contacts);
+		$this->config->expects($this->any())
+			->method('getSystemValue')
+			->with('webui-sharing-autocompletion.enabled', true)
+			->willReturn($autocomplete);
 
 		$users = $this->invokePrivate($this->sharees, 'getRemote', [$searchTerm]);
 
