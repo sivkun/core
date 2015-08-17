@@ -166,15 +166,20 @@ class ChangeKeyStorageRoot extends Command {
 	 * @throws \Exception
 	 */
 	protected function moveUserEncryptionFolder($user, $oldRoot, $newRoot) {
-		$source = $oldRoot . '/' . $user . '/files_encryption';
-		$target = $newRoot . '/' . $user . '/files_encryption';
-		if (
-			$this->userManager->userExists($user) &&
-			$this->rootView->is_dir($source) &&
-			$this->targetExists($target) === false
-		) {
-			$this->prepareParentFolder($newRoot . '/' . $user);
-			$this->rootView->rename($source, $target);
+
+		if ($this->userManager->userExists($user)) {
+			\OC_Util::tearDownFS();
+			\OC_Util::setupFS($user);
+
+			$source = $oldRoot . '/' . $user . '/files_encryption';
+			$target = $newRoot . '/' . $user . '/files_encryption';
+			if (
+				$this->rootView->is_dir($source) &&
+				$this->targetExists($target) === false
+			) {
+				$this->prepareParentFolder($newRoot . '/' . $user);
+				$this->rootView->rename($source, $target);
+			}
 		}
 	}
 
