@@ -266,9 +266,9 @@ class ShareesTest extends TestCase {
 			->method('getUser')
 			->willReturn($user);
 		$this->config->expects($this->any())
-			->method('getSystemValue')
-			->with('webui-sharing-autocompletion.enabled', true)
-			->willReturn($autocomplete);
+			->method('getAppValue')
+			->with('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes')
+			->willReturn($autocomplete ? 'yes' : 'no');
 
 		if (!$shareWithGroupOnly) {
 			$this->userManager->expects($this->once())
@@ -348,9 +348,9 @@ class ShareesTest extends TestCase {
 			->with($searchTerm)
 			->willReturn($groupResponse);
 		$this->config->expects($this->any())
-			->method('getSystemValue')
-			->with('webui-sharing-autocompletion.enabled', true)
-			->willReturn($autocomplete);
+			->method('getAppValue')
+			->with('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes')
+			->willReturn($autocomplete ? 'yes' : 'no');
 
 		if ($shareWithGroupOnly) {
 			$user = $this->getUserMock('admin', 'Administrator');
@@ -579,9 +579,9 @@ class ShareesTest extends TestCase {
 			->with($searchTerm, ['CLOUD', 'FN'])
 			->willReturn($contacts);
 		$this->config->expects($this->any())
-			->method('getSystemValue')
-			->with('webui-sharing-autocompletion.enabled', true)
-			->willReturn($autocomplete);
+			->method('getAppValue')
+			->with('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes')
+			->willReturn($autocomplete ? 'yes' : 'no');
 
 		$users = $this->invokePrivate($this->sharees, 'getRemote', [$searchTerm]);
 

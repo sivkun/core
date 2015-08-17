@@ -223,7 +223,7 @@ class Sharees {
 	 * @return bool True if the entry is an autocomplete hint, false otherwise
 	 */
 	protected function filterAutocompletion($search, $sharee, $label) {
-		if ($this->config->getSystemValue('webui-sharing-autocompletion.enabled', true)) {
+		if ($this->config->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes') === 'yes') {
 			return false;
 		}
 
