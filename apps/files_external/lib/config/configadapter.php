@@ -45,6 +45,9 @@ class ConfigAdapter implements IMountProvider {
 		foreach ($mountPoints as $mountPoint => $options) {
 			if (isset($options['options']['objectstore'])) {
 				$objectClass = $options['options']['objectstore']['class'];
+				if (!is_subclass_of($objectClass, '\OCP\Files\ObjectStore\IObjectStore')) {
+					throw new \InvalidArgumentException('Invalid object store');
+				}
 				$options['options']['objectstore'] = new $objectClass($options['options']['objectstore']);
 			}
 			$mountOptions = isset($options['mountOptions']) ? $options['mountOptions'] : [];
