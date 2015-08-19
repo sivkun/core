@@ -164,7 +164,7 @@ class Application extends App {
 			return new CacheSettingsController(
 				$c->query('AppName'),
 				$c->query('Request'),
-				$c->query('MemCacheFactory')
+				$c->query('ICacheFactory')
 			);
 		});
 
