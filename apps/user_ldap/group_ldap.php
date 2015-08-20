@@ -377,7 +377,8 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(intval($this->access->connection->hasMemberOfFilterSupport) === 1
 			&& intval($this->access->connection->useMemberOfToDetectMembership) === 1
 		) {
-			$groupDNs = $this->access->readAttribute($userDN, 'memberOf');
+			$user = $this->access->userManager->get($userDN);
+			$groupDNs = $user->getMemberOfGroups();
 
 			if (is_array($groupDNs)) {
 				$groupDNs = $this->access->groupsMatchFilter($groupDNs);
